@@ -1,37 +1,32 @@
-name: Deploy to Xserver
+name: Deploy to Xserver via FTPS
 
 on:
   push:
     branches:
-      - main # master の場合は master に変更してください
+      - main # master の場合は master に変更
 
 jobs:
-  deploy:
-    name: Sync Files
+  web-deploy:
+    name: FTPS Deploy
     runs-on: ubuntu-latest
-
     steps:
-      # 1. リポジトリのソースコードを取得
-      - name: Checkout Repository
+      # 1. コードの取得
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # 差分検知のために直近履歴を取得
 
-      # 2. 秘密鍵を配置してパスフレーズを自動解除し、rsync で Xserver へ転送
-      - name: Deploy with rsync
-        env:
-          SSH_KEY: ${{ secrets.SFTP_KEY }}
-          SSH_PASSPHRASE: ${{ secrets.SFTP_PASSPHRASE }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-
-          # パスフレーズを自動解除（空に変更）
-          ssh-keygen -p -P "$SSH_PASSPHRASE" -N "" -f ~/.ssh/deploy_key
-
-          # Xserver へ差分アップロード（10022番ポート）
-          rsync -avz --delete \
-            -e "ssh -p ${{ secrets.SFTP_PORT }} -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-            --exclude '.git*' \
-            --exclude '.github*' \
-            --exclude 'node_modules*' \
-            ./ ${{ secrets.SFTP_USER }}@${{ secrets.SFTP_HOST }}:/home/${{ secrets.SFTP_USER }}/blockworks.jp/public_html/test-dayo/
+      # 2. FTPS で Xserver へ差分アップロード
+      - name: Sync files via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps # 暗号化通信（FTPS）を明示
+          port: 21
+          server-dir: ./blockworks.jp/public_html/test-dayo/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
