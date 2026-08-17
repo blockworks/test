@@ -14,7 +14,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # 差分検知のために直近履歴を取得
+          fetch-depth: 2
 
       # 2. FTPS で Xserver へ差分アップロード
       - name: Sync files via FTPS
@@ -23,8 +23,9 @@ jobs:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps # 暗号化通信（FTPS）を明示
+          protocol: ftps
           port: 21
+          security: loose # 自己署名・証明書の不一致エラーを回避
           server-dir: ./blockworks.jp/public_html/test-dayo/
           exclude: |
             **/.git*
