@@ -15,18 +15,22 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. パスフレーズ付き秘密鍵を ssh-agent に読み込ませる
-      - name: Setup SSH Keys and known_hosts
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SFTP_KEY }}
-          ssh-passphrase: ${{ secrets.SFTP_PASSPHRASE }}
-
-      # 3. rsync で Xserver に差分転送（10022番ポート指定）
+      # 2. 秘密鍵を配置してパスフレーズを自動解除し、rsync で Xserver へ転送
       - name: Deploy with rsync
+        env:
+          SSH_KEY: ${{ secrets.SFTP_KEY }}
+          SSH_PASSPHRASE: ${{ secrets.SFTP_PASSPHRASE }}
         run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+          # パスフレーズを自動解除（空に変更）
+          ssh-keygen -p -P "$SSH_PASSPHRASE" -N "" -f ~/.ssh/deploy_key
+
+          # Xserver へ差分アップロード（10022番ポート）
           rsync -avz --delete \
-            -e "ssh -p ${{ secrets.SFTP_PORT }} -o StrictHostKeyChecking=no" \
+            -e "ssh -p ${{ secrets.SFTP_PORT }} -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
             --exclude '.git*' \
             --exclude '.github*' \
             --exclude 'node_modules*' \
