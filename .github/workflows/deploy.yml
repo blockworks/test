@@ -1,32 +1,18 @@
-name: Deploy to Xserver via FTPS
-
-on:
-  push:
-    branches:
-      - main # master の場合は master に変更
-
-jobs:
-  web-deploy:
-    name: FTPS Deploy
-    runs-on: ubuntu-latest
-    steps:
-      # 1. コードの取得
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      # 2. FTPS で Xserver へ差分アップロード
-      - name: Sync files via FTPS
+- name: Sync files via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
+          server: ${{ fromJSON(secrets.FTP_CONFIG).server1.server }}
+          username: ${{ fromJSON(secrets.FTP_CONFIG).server1.username }}
+          password: ${{ fromJSON(secrets.FTP_CONFIG).server1.password }}
           protocol: ftps
           port: 21
-          security: loose # 自己署名・証明書の不一致エラーを回避
+          security: loose
+          # ▼ 実際にアップロードする場所（有効）
           server-dir: ./blockworks.jp/public_html/test-dayo/
+
+          # ▼ 将来リポジトリ名と同じフォルダにしたい場合のメモ（無効化）
+          # server-dir: ./blockworks.jp/public_html/${{ github.event.repository.name }}/
+
           exclude: |
             **/.git*
             **/.git*/**
