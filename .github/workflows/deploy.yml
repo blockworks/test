@@ -3,7 +3,7 @@ name: Deploy to Xserver
 on:
   push:
     branches:
-      - main # mainブランチにpushされた時に実行（masterの場合は master に変更）
+      - main # master の場合は master に変更してください
 
 jobs:
   deploy:
@@ -11,19 +11,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. リポジトリのコードを取得
+      # 1. リポジトリのソースコードを取得
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. SFTPでXserverへアップロード
-      - name: SFTP Deploy to Xserver
-        uses: easingthemes/ssh-deploy@v5.0.3
+      # 2. パスフレーズ付き秘密鍵を ssh-agent に読み込ませる
+      - name: Setup SSH Keys and known_hosts
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          SSH_PRIVATE_KEY: ${{ secrets.SFTP_KEY }}
-          ARGS: "-rlgoDzvc -i --delete" # 差分転送 + 削除ファイルの同期
-          SERVER_PORT: ${{ secrets.SFTP_PORT }}
-          REMOTE_HOST: ${{ secrets.SFTP_HOST }}
-          REMOTE_USER: ${{ secrets.SFTP_USER }}
-          TARGET: "/home/${{ secrets.SFTP_USER }}/blockworks.jp/public_html/test-dayo/" # アップロード先の絶対パス
-          PASSPHRASE: ${{ secrets.SFTP_PASSPHRASE }}
-          EXCLUDE: "/.git/, /.github/, /node_modules/"
+          ssh-private-key: ${{ secrets.SFTP_KEY }}
+          ssh-passphrase: ${{ secrets.SFTP_PASSPHRASE }}
+
+      # 3. rsync で Xserver に差分転送（10022番ポート指定）
+      - name: Deploy with rsync
+        run: |
+          rsync -avz --delete \
+            -e "ssh -p ${{ secrets.SFTP_PORT }} -o StrictHostKeyChecking=no" \
+            --exclude '.git*' \
+            --exclude '.github*' \
+            --exclude 'node_modules*' \
+            ./ ${{ secrets.SFTP_USER }}@${{ secrets.SFTP_HOST }}:/home/${{ secrets.SFTP_USER }}/blockworks.jp/public_html/test-dayo/
