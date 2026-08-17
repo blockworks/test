@@ -1,0 +1,29 @@
+name: Deploy to Xserver
+
+on:
+  push:
+    branches:
+      - main # mainブランチにpushされた時に実行（masterの場合は master に変更）
+
+jobs:
+  deploy:
+    name: Sync Files
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. リポジトリのコードを取得
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. SFTPでXserverへアップロード
+      - name: SFTP Deploy to Xserver
+        uses: easingthemes/ssh-deploy@v5.0.3
+        with:
+          SSH_PRIVATE_KEY: ${{ secrets.SFTP_KEY }}
+          ARGS: "-rlgoDzvc -i --delete" # 差分転送 + 削除ファイルの同期
+          SERVER_PORT: ${{ secrets.SFTP_PORT }}
+          REMOTE_HOST: ${{ secrets.SFTP_HOST }}
+          REMOTE_USER: ${{ secrets.SFTP_USER }}
+          TARGET: "/home/${{ secrets.SFTP_USER }}/blockworks.jp/public_html/test-dayo/" # アップロード先の絶対パス
+          PASSPHRASE: ${{ secrets.SFTP_PASSPHRASE }}
+          EXCLUDE: "/.git/, /.github/, /node_modules/"
