@@ -1,4 +1,21 @@
-- name: Sync files via FTPS
+name: Deploy to Xserver via FTPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  web-deploy:
+    name: FTPS Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Sync files via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ fromJSON(secrets.FTP_CONFIG).server1.server }}
